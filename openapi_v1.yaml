@@ -1,0 +1,188 @@
+openapi: 3.1.1
+info:
+  title: rustNPS API v1
+  version: 0.1.0
+  license:
+    name: MIT
+    identifier: MIT
+  description: API v1 specification for the rustNPS application.
+  contact:
+    name: Unartig Team
+
+servers:
+  - url: /v1
+    description: local
+
+security:
+  - bearerAuth: [ ]
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    CreateNpsPayload:
+      type: object
+      required:
+        - user
+        - segment
+        - score
+      properties:
+        user:
+          type: string
+          format: ObjectId
+        segment:
+          type: string
+        score:
+          type: integer
+          format: int32
+        comment:
+          type: string
+
+    DismissNpsPayload:
+      type: object
+      required:
+        - user
+        - segment
+        - dismissed
+      properties:
+        user:
+          type: string
+          format: ObjectId
+        segment:
+          type: string
+        dismissed:
+          type: boolean
+
+    Success:
+      type: object
+      properties:
+        message:
+          type: string
+
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+
+paths:
+  /nps:
+    post:
+      tags: [ NPS ]
+      summary: Create a new NPS entry
+      operationId: createNpsEntry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              $ref: '#/components/schemas/CreateNpsPayload'
+      responses:
+        '201':
+          description: Entry created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Success'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Error'
+        '422':
+          description: Unprocessable entity
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Error'
+  /nps/dismiss:
+    delete:
+      tags: [ NPS ]
+      summary: Dismiss a new entry
+      operationId: dismissNpsEntry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              $ref: '#/components/schemas/DismissNpsPayload'
+      responses:
+        '200':
+          description: Entry dismissed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Success'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Error'
+        '422':
+          description: Unprocessable entity
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Error'
