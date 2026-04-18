@@ -10,7 +10,13 @@ pub struct NpsCreatePayload {
     pub segment: String,
     pub score: i32,
     pub comment: Option<String>,
-    pub dismissed: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+pub struct NpsDismissPayload {
+    pub user: ObjectId,
+    pub segment: String,
+    pub dismissed: bool,
 }
 
 impl NpsCreatePayload {
