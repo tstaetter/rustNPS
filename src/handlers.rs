@@ -1,3 +1,7 @@
-pub async fn create() {}
+pub async fn create() {
+    tracing::info!("Creating new notification");
+}
 
-pub async fn dismiss() {}
+pub async fn dismiss() {
+    tracing::info!("Dismissing notification");
+}
