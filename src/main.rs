@@ -23,8 +23,9 @@ async fn main() -> AppResult<()> {
     // Database setup
     let mongo_uri =
         std::env::var("MONGODB_URI").unwrap_or_else(|_| "mongodb://localhost:27017".to_string());
+    let mongo_db = std::env::var("MONGODB_DB").unwrap_or_else(|_| "rust_nps".to_string());
     let client = Client::with_uri_str(&mongo_uri).await?;
-    let db = client.database("unartig_app_development");
+    let db = client.database(&mongo_db);
     let app_state = Arc::new(AppState { db });
     let app = app(app_state);
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
