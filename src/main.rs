@@ -24,7 +24,7 @@ async fn main() -> AppResult<()> {
     let mongo_uri =
         std::env::var("MONGODB_URI").unwrap_or_else(|_| "mongodb://localhost:27017".to_string());
     let client = Client::with_uri_str(&mongo_uri).await?;
-    let db = client.database("unartig_rust_development");
+    let db = client.database("unartig_app_development");
     let app_state = Arc::new(AppState { db });
     let app = app(app_state);
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
