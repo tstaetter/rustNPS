@@ -11,8 +11,8 @@ use std::sync::Arc;
 use validator::Validate;
 
 pub async fn create(
-    Json(payload): Json<NpsCreatePayload>,
     State(state): State<Arc<AppState>>,
+    Json(payload): Json<NpsCreatePayload>,
 ) -> impl IntoResponse {
     tracing::info!("Creating new notification");
 
