@@ -1,5 +1,5 @@
 # Stage 1: Build the application
-FROM rust:1.85-slim AS chef
+FROM docker.io/rust:1-alpine as chef
 RUN cargo install cargo-chef
 WORKDIR /app
 
