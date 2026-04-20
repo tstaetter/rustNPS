@@ -5,7 +5,7 @@ use crate::AppState;
 use axum::extract::{Query, State};
 use axum::response::IntoResponse;
 use axum::Json;
-use chrono::{DateTime, Duration, Utc};
+use chrono::{Duration, Utc};
 use mongodb::Collection;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -16,16 +16,12 @@ pub async fn index(
 ) -> impl IntoResponse {
     let period_days = query.period.unwrap_or(90);
     let from = Utc::now() - Duration::days(period_days as i64);
-    let from_bson = DateTime::<Utc>::from(from);
 
     let collection: Collection<NpsEntry> = state.db.collection("nps_responses");
 
     // Get segments
     let segments_names: Vec<String> = collection
-        .distinct(
-            "segment",
-            bson::doc! { "created_at": { "$gte": from_bson } },
-        )
+        .distinct("segment", bson::doc! { "created_at": { "$gte": from } })
         .await
         .unwrap_or_default()
         .into_iter()
@@ -33,7 +29,7 @@ pub async fn index(
         .collect();
 
     // Overall stats
-    let base_filter = bson::doc! { "created_at": { "$gte": from_bson } };
+    let base_filter = bson::doc! { "created_at": { "$gte": from } };
     let overall = build_stats(&collection, base_filter.clone()).await;
 
     // Segment stats
