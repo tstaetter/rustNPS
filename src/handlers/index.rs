@@ -22,7 +22,10 @@ pub async fn index(
 
     // Get segments
     let segments_names: Vec<String> = collection
-        .distinct("segment", bson::doc! { "created_at": { "$gte": from_bson } })
+        .distinct(
+            "segment",
+            bson::doc! { "created_at": { "$gte": from_bson } },
+        )
         .await
         .unwrap_or_default()
         .into_iter()
@@ -70,7 +73,9 @@ mod tests {
 
                 // Verify the handler executes without error
                 let response = result.into_response();
-                let body = axum::body::to_bytes(response.into_body(), 1024).await.unwrap();
+                let body = axum::body::to_bytes(response.into_body(), 1024)
+                    .await
+                    .unwrap();
                 let _: serde_json::Value = serde_json::from_slice(&body).unwrap();
             }
             Err(_) => {
@@ -90,15 +95,13 @@ mod tests {
                 let _collection: mongodb::Collection<NpsEntry> = db.collection("nps_responses");
 
                 let app_state = Arc::new(AppState { db: db.clone() });
-                let result = index(
-                    State(app_state),
-                    Query(IndexQuery { period: Some(30) }),
-                )
-                .await;
+                let result = index(State(app_state), Query(IndexQuery { period: Some(30) })).await;
 
                 // Verify the handler executes without error
                 let response = result.into_response();
-                let body = axum::body::to_bytes(response.into_body(), 1024).await.unwrap();
+                let body = axum::body::to_bytes(response.into_body(), 1024)
+                    .await
+                    .unwrap();
                 let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
 
                 // Verify period_days is set correctly
