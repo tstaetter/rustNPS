@@ -35,7 +35,7 @@ RUST_LOG=rust_nps=debug,tower_http=debug
 
 ### Running the Application
 
-To start the server on `http://0.0.0.0:3000`:
+To start the server on `http://0.0.0.0:8000`:
 
 ```bash
 cargo run
@@ -53,7 +53,7 @@ npm run lint
 ## Scripts
 
 - `cargo run`: Starts the API server.
-- `cargo test`: Runs Rust unit and integration tests.
+- `cargo nextest`: Runs Rust unit and integration tests.
 - `npm run lint`: Lints the `openapi_v1.yaml` file using Redocly.
 - `npm test`: Alias for `npm run lint`.
 
@@ -91,7 +91,7 @@ See `openapi_v1.yaml` for full details.
 Run the test suite using:
 
 ```bash
-cargo test
+cargo nextest
 ```
 
 The project uses `axum-test` for integration testing.
