@@ -1,3 +1,4 @@
+use mongodb::Client;
 use rust_nps::{app, AppResult, AppState};
 use std::sync::Arc;
 use tracing_subscriber::{prelude::*, EnvFilter};
@@ -18,11 +19,20 @@ async fn main() -> AppResult<()> {
                 .with_writer(std::io::stdout),
         )
         .init();
-    let app_state = Arc::new(AppState {});
+
+    // Database setup
+    let mongo_uri =
+        std::env::var("MONGODB_URI").unwrap_or_else(|_| "mongodb://localhost:27017".to_string());
+    let mongo_db = std::env::var("MONGODB_DB").unwrap_or_else(|_| "rust_nps".to_string());
+    let client = Client::with_uri_str(&mongo_uri).await?;
+    let db = client.database(&mongo_db);
+    let app_state = Arc::new(AppState { db });
     let app = app(app_state);
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await?;
 
     tracing::info!("Listening on {}", listener.local_addr()?);
+    println!("Listening on {}", listener.local_addr()?);
+
     axum::serve(listener, app).await?;
 
     Ok(())
