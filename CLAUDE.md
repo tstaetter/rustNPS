@@ -9,12 +9,12 @@ This is a Rust microservice built with Axum that handles Net Promoter Score (NPS
 - **Entry Point**: `src/main.rs` initializes MongoDB connection and starts the Axum server on port 8000
 - **Application Factory**: `src/lib.rs` creates the Axum router with shared `AppState` (MongoDB database reference)
 - **Module Structure**:
-  - `src/routes.rs`: Defines Axum routes (GET/POST /v1/nps, DELETE /v1/nps/dismiss)
-  - `src/handlers/`: Business logic organized in modules (`create`, `dismiss`, `index`, `stats`)
-  - `src/payloads.rs`: DTOs with validation (validator crate)
-  - `src/db/`: MongoDB model (`NpsEntry`)
-  - `src/segment.rs`: Segment enum (User, Studio, Professional)
-  - `src/error.rs`: Custom error types wrapping MongoDB and I/O errors
+    - `src/routes.rs`: Defines Axum routes (GET/POST /v1/nps, DELETE /v1/nps/dismiss)
+    - `src/handlers/`: Business logic organized in modules (`create`, `dismiss`, `index`, `stats`)
+    - `src/payloads.rs`: DTOs with validation (validator crate)
+    - `src/db/`: MongoDB model (`NpsEntry`)
+    - `src/segment.rs`: Segment enum (User, Studio, Professional)
+    - `src/error.rs`: Custom error types wrapping MongoDB and I/O errors
 
 ## Common Commands
 
@@ -23,10 +23,10 @@ This is a Rust microservice built with Axum that handles Net Promoter Score (NPS
 cargo run
 
 # Run tests
-cargo test
+cargo nextest run
 
 # Run a single test
-cargo test -- --test-threads=1 --exact <test_name>
+cargo nextest run -- --exact <test_name>
 
 # Lint OpenAPI spec
 npm run lint
@@ -38,6 +38,7 @@ npm install
 ## Environment Setup
 
 Create `.env` file in project root:
+
 ```env
 RUST_LOG=rust_nps=debug,tower_http=debug
 MONGODB_URI=mongodb://localhost:27017
@@ -55,15 +56,18 @@ All endpoints are under `/v1` prefix and require JWT bearer token authentication
 ## Key Implementation Details
 
 ### NPS Calculation
+
 - Promoters: score >= 9
 - Passives: score 7-8
 - Detractors: score <= 6
 - NPS = (% promoters - % detractors), rounded to integer
 
 ### Segment Types
+
 Enum `Segment` supports: User, Studio, Professional (defaults to User)
 
 ### Data Flow
+
 1. Request arrives at router (`src/routes.rs`)
 2. Handler extracts state and payload (`src/handlers/*.rs`)
 3. Validation via `validator` crate derives
@@ -71,6 +75,7 @@ Enum `Segment` supports: User, Studio, Professional (defaults to User)
 5. Responses use `axum::Json` with status codes
 
 ### Testing
+
 - Integration tests use `axum-test` crate for mocking requests
 - Tests run against in-memory or actual MongoDB instance
 
