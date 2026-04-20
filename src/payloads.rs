@@ -1,7 +1,8 @@
 use bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
+use validator::Validate;
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, Validate)]
 #[serde(rename_all = "camelCase")]
 pub struct NpsCreatePayload {
     pub user: ObjectId,

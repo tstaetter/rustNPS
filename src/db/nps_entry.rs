@@ -15,4 +15,18 @@ pub struct NpsEntry {
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
+impl From<crate::payloads::NpsCreatePayload> for NpsEntry {
+    fn from(entry: crate::payloads::NpsCreatePayload) -> Self {
+        Self {
+            id: None,
+            user: entry.user,
+            segment: entry.segment,
+            score: entry.score,
+            comment: entry.comment,
+            dismissed: None,
+            created_at: Default::default(),
+            updated_at: Default::default(),
+        }
+    }
+}
 impl Model for NpsEntry {}
