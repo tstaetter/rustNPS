@@ -1,13 +1,14 @@
-use crate::error::NpsError;
-use axum::Router;
-use std::sync::Arc;
-
 pub mod db;
 pub mod error;
 mod handlers;
 mod payloads;
 pub mod routes;
 mod segment;
+
+use crate::error::NpsError;
+use axum::Router;
+pub use handlers::*;
+use std::sync::Arc;
 
 pub type AppResult<T> = Result<T, NpsError>;
 

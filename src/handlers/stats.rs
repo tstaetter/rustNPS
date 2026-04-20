@@ -1,59 +1,15 @@
 use crate::db::NpsEntry;
-use crate::payloads::{IndexQuery, NpsDashboardResponse, NpsStats, TrendItem};
-use crate::AppState;
-use axum::extract::{Query, State};
-use axum::response::IntoResponse;
-use axum::Json;
+use crate::payloads::{NpsStats, TrendItem};
 use bson::{doc, DateTime};
 use chrono::{Datelike, Duration, Utc};
 use futures::TryStreamExt;
 use mongodb::Collection;
 use std::collections::HashMap;
-use std::sync::Arc;
 
-pub async fn index(
-    State(state): State<Arc<AppState>>,
-    Query(query): Query<IndexQuery>,
-) -> impl IntoResponse {
-    let period_days = query.period.unwrap_or(90);
-    let from = Utc::now() - Duration::days(period_days as i64);
-    let from_bson = DateTime::from_chrono(from);
-
-    let collection: Collection<NpsEntry> = state.db.collection("nps_responses");
-
-    // Get segments
-    let segments_names: Vec<String> = collection
-        .distinct("segment", doc! { "created_at": { "$gte": from_bson } })
-        .await
-        .unwrap_or_default()
-        .into_iter()
-        .filter_map(|b| b.as_str().map(|s| s.to_string()))
-        .collect();
-
-    // Overall stats
-    let base_filter = doc! { "created_at": { "$gte": from_bson } };
-    let overall = build_stats(&collection, base_filter.clone()).await;
-
-    // Segment stats
-    let mut segments = HashMap::new();
-    for segment in segments_names {
-        let mut filter = base_filter.clone();
-        filter.insert("segment", &segment);
-        segments.insert(segment, build_stats(&collection, filter).await);
-    }
-
-    // Trend
-    let trend = build_trend(&collection).await;
-
-    Json(NpsDashboardResponse {
-        period_days,
-        overall,
-        segments,
-        trend,
-    })
-}
-
-async fn build_stats(collection: &Collection<NpsEntry>, filter: bson::Document) -> NpsStats {
+pub(crate) async fn build_stats(
+    collection: &Collection<NpsEntry>,
+    filter: bson::Document,
+) -> NpsStats {
     let total = collection
         .count_documents(filter.clone())
         .await
@@ -116,7 +72,7 @@ async fn build_stats(collection: &Collection<NpsEntry>, filter: bson::Document) 
     }
 }
 
-async fn build_trend(collection: &Collection<NpsEntry>) -> Vec<TrendItem> {
+pub(crate) async fn build_trend(collection: &Collection<NpsEntry>) -> Vec<TrendItem> {
     let mut trend = Vec::new();
     let now = Utc::now();
 
@@ -220,12 +176,4 @@ fn percentage(count: u64, total: u64) -> f64 {
         return 0.0;
     }
     ((count as f64 / total as f64) * 1000.0).round() / 10.0
-}
-
-pub async fn create() -> impl IntoResponse {
-    tracing::info!("Creating new notification");
-}
-
-pub async fn dismiss() -> impl IntoResponse {
-    tracing::info!("Dismissing notification");
 }
