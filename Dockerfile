@@ -1,5 +1,5 @@
 # Stage 1: Build the application
-FROM docker.io/rust:1-alpine as chef
+FROM rust:1-slim-bookworm AS chef
 RUN cargo install cargo-chef
 WORKDIR /app
 
@@ -26,6 +26,12 @@ RUN apt-get update && apt-get install -y libssl3 ca-certificates && rm -rf /var/
 
 # Copy the binary from the builder stage
 COPY --from=builder /app/target/release/rust_nps /app/rust_nps
+
+# Set environment variables (defaults, can be overridden by Koyeb)
+ENV MONGODB_URI="mongodb://localhost:27017"
+ENV MONGODB_DB="rust_nps"
+ENV RUST_LOG="info"
+ENV PORT=8000
 
 # Expose the port the app runs on
 EXPOSE 8000
