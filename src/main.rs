@@ -21,6 +21,7 @@ async fn main() -> AppResult<()> {
         .init();
 
     // Database setup
+    let port = std::env::var("PORT").unwrap_or_else(|_| "8000".to_string());
     let mongo_uri =
         std::env::var("MONGODB_URI").unwrap_or_else(|_| "mongodb://localhost:27017".to_string());
     let mongo_db = std::env::var("MONGODB_DB").unwrap_or_else(|_| "rust_nps".to_string());
@@ -28,7 +29,7 @@ async fn main() -> AppResult<()> {
     let db = client.database(&mongo_db);
     let app_state = Arc::new(AppState { db });
     let app = app(app_state);
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await?;
+    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", port)).await?;
 
     tracing::info!("Listening on {}", listener.local_addr()?);
     println!("Listening on {}", listener.local_addr()?);
