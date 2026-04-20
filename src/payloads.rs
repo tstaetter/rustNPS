@@ -1,9 +1,8 @@
 use bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
-use validator::Validate;
+use validator::{Validate, ValidationError};
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, Validate)]
-#[serde(rename_all = "camelCase")]
 pub struct NpsCreatePayload {
     pub user: ObjectId,
     pub segment: String,
@@ -13,6 +12,7 @@ pub struct NpsCreatePayload {
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, Validate)]
 pub struct NpsDismissPayload {
+    #[validate(custom(function = "validate_object_id"))]
     pub user: ObjectId,
     pub segment: String,
     pub dismissed: bool,
@@ -55,5 +55,13 @@ pub struct IndexQuery {
 impl NpsCreatePayload {
     pub fn new() -> Self {
         NpsCreatePayload::default()
+    }
+}
+
+fn validate_object_id(id: &ObjectId) -> Result<(), ValidationError> {
+    if ObjectId::parse_str(id.to_string()).is_err() {
+        Err(ValidationError::new("invalid ObjectId format"))
+    } else {
+        Ok(())
     }
 }

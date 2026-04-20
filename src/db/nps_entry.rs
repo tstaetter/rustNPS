@@ -1,4 +1,5 @@
 use crate::db::Model;
+use crate::segment::Segment;
 use bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
 
@@ -7,7 +8,7 @@ pub struct NpsEntry {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<ObjectId>,
     pub user: ObjectId,
-    pub segment: String,
+    pub segment: Segment,
     pub score: i32,
     pub comment: Option<String>,
     pub dismissed: Option<bool>,
@@ -20,7 +21,7 @@ impl From<crate::payloads::NpsCreatePayload> for NpsEntry {
         Self {
             id: None,
             user: entry.user,
-            segment: entry.segment,
+            segment: Segment::from(entry.segment),
             score: entry.score,
             comment: entry.comment,
             dismissed: None,
@@ -35,7 +36,7 @@ impl From<crate::payloads::NpsDismissPayload> for NpsEntry {
         Self {
             id: None,
             user: entry.user,
-            segment: entry.segment,
+            segment: Segment::from(entry.segment),
             score: Default::default(),
             comment: Default::default(),
             dismissed: Some(entry.dismissed),
