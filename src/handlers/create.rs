@@ -17,7 +17,7 @@ pub async fn create(
     tracing::info!("Creating new notification");
 
     if let Err(e) = payload.validate() {
-        tracing::error!("Validation failed for booking: {:?}", e);
+        tracing::error!("Validation failed for entry: {:?}", e);
         return (StatusCode::UNPROCESSABLE_ENTITY, Json(e)).into_response();
     }
 

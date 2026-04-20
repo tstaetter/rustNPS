@@ -7,12 +7,18 @@ use axum::response::IntoResponse;
 use axum::Json;
 use bson::doc;
 use std::sync::Arc;
+use validator::Validate;
 
 pub async fn dismiss(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<NpsDismissPayload>,
 ) -> impl IntoResponse {
     tracing::info!("Dismissing notification");
+
+    if let Err(e) = payload.validate() {
+        tracing::error!("Validation failed for dismissed entry: {:?}", e);
+        return (StatusCode::UNPROCESSABLE_ENTITY, Json(e)).into_response();
+    }
 
     let entry = NpsEntry::from(payload);
     let collection = state.db.collection("nps_responses");

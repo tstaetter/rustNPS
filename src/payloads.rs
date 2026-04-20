@@ -11,7 +11,7 @@ pub struct NpsCreatePayload {
     pub comment: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default, Validate)]
 pub struct NpsDismissPayload {
     pub user: ObjectId,
     pub segment: String,
