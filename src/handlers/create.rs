@@ -36,7 +36,7 @@ pub async fn create(
             (StatusCode::CREATED, Json(response)).into_response()
         }
         Err(e) => {
-            tracing::error!("Error creating booking: {:?}", e);
+            tracing::error!("Error creating entry: {:?}", e);
 
             let response = doc! { "msg": e.to_string() };
 

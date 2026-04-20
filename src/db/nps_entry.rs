@@ -29,4 +29,20 @@ impl From<crate::payloads::NpsCreatePayload> for NpsEntry {
         }
     }
 }
+
+impl From<crate::payloads::NpsDismissPayload> for NpsEntry {
+    fn from(entry: crate::payloads::NpsDismissPayload) -> Self {
+        Self {
+            id: None,
+            user: entry.user,
+            segment: entry.segment,
+            score: Default::default(),
+            comment: Default::default(),
+            dismissed: Some(entry.dismissed),
+            created_at: Default::default(),
+            updated_at: Default::default(),
+        }
+    }
+}
+
 impl Model for NpsEntry {}
