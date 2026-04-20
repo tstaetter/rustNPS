@@ -30,3 +30,4 @@ handlers = "0.10.0"
 [dev-dependencies]
 anyhow = "1"
 axum-test = "20"
+serial_test = "0.2"

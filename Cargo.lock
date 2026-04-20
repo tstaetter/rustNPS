@@ -2563,6 +2563,7 @@ dependencies = [
  "serde-helpers",
  "serde_json",
  "serde_with",
+ "serial_test",
  "thiserror 2.0.18",
  "tokio",
  "tower",
@@ -2907,6 +2908,15 @@ dependencies = [
  "linked-hash-map",
  "serde",
  "yaml-rust",
+]
+
+[[package]]
+name = "serial_test"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "50bfbc39343545618d97869d77f38ed43e48dd77432717dbc7ed39d797f3ecbe"
+dependencies = [
+ "lazy_static",
 ]
 
 [[package]]
