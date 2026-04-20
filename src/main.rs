@@ -31,6 +31,8 @@ async fn main() -> AppResult<()> {
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await?;
 
     tracing::info!("Listening on {}", listener.local_addr()?);
+    println!("Listening on {}", listener.local_addr()?);
+
     axum::serve(listener, app).await?;
 
     Ok(())
