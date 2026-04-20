@@ -5,8 +5,7 @@ use crate::AppState;
 use axum::extract::{Query, State};
 use axum::response::IntoResponse;
 use axum::Json;
-use bson::{doc, DateTime};
-use chrono::{Duration, Utc};
+use chrono::{DateTime, Duration, Utc};
 use mongodb::Collection;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -17,13 +16,13 @@ pub async fn index(
 ) -> impl IntoResponse {
     let period_days = query.period.unwrap_or(90);
     let from = Utc::now() - Duration::days(period_days as i64);
-    let from_bson = DateTime::from_chrono(from);
+    let from_bson = DateTime::<Utc>::from(from);
 
     let collection: Collection<NpsEntry> = state.db.collection("nps_responses");
 
     // Get segments
     let segments_names: Vec<String> = collection
-        .distinct("segment", doc! { "created_at": { "$gte": from_bson } })
+        .distinct("segment", bson::doc! { "created_at": { "$gte": from_bson } })
         .await
         .unwrap_or_default()
         .into_iter()
@@ -31,7 +30,7 @@ pub async fn index(
         .collect();
 
     // Overall stats
-    let base_filter = doc! { "created_at": { "$gte": from_bson } };
+    let base_filter = bson::doc! { "created_at": { "$gte": from_bson } };
     let overall = build_stats(&collection, base_filter.clone()).await;
 
     // Segment stats
@@ -51,4 +50,95 @@ pub async fn index(
         segments,
         trend,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use bson::doc;
+
+    #[tokio::test]
+    async fn test_index_handler_uses_default_period_when_not_specified() {
+        let client = mongodb::Client::with_uri_str("mongodb://localhost:27017/test_nps")
+            .await
+            .unwrap();
+
+        let db = client.database("test_nps");
+        let _collection: mongodb::Collection<NpsEntry> = db.collection("nps_responses");
+
+        let app_state = Arc::new(AppState { db: db.clone() });
+        let result = index(State(app_state), Query(IndexQuery::default())).await;
+
+        // Verify the handler executes without error
+        let response = result.into_response();
+        let body = axum::body::to_bytes(response.into_body(), 1024).await.unwrap();
+        let _: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_index_handler_with_custom_period() {
+        let client = mongodb::Client::with_uri_str("mongodb://localhost:27017/test_nps")
+            .await
+            .unwrap();
+
+        let db = client.database("test_nps");
+        let _collection: mongodb::Collection<NpsEntry> = db.collection("nps_responses");
+
+        let app_state = Arc::new(AppState { db: db.clone() });
+        let result = index(
+            State(app_state),
+            Query(IndexQuery { period: Some(30) }),
+        )
+        .await;
+
+        // Verify the handler executes without error
+        let response = result.into_response();
+        let body = axum::body::to_bytes(response.into_body(), 1024).await.unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+
+        // Verify period_days is set correctly
+        assert_eq!(json["period_days"], 30);
+    }
+
+    #[tokio::test]
+    async fn test_build_stats_empty_collection() {
+        let client = mongodb::Client::with_uri_str("mongodb://localhost:27017/test_nps")
+            .await
+            .unwrap();
+
+        let db = client.database("test_nps");
+        let collection: Collection<NpsEntry> = db.collection("nps_responses");
+
+        let stats = build_stats(&collection, doc! {}).await;
+
+        // Empty collection should return zero values
+        assert_eq!(stats.total, 0);
+        assert_eq!(stats.promoters, 0);
+        assert_eq!(stats.passives, 0);
+        assert_eq!(stats.detractors, 0);
+        assert_eq!(stats.nps, 0);
+        assert_eq!(stats.promoter_pct, 0.0);
+        assert_eq!(stats.passive_pct, 0.0);
+        assert_eq!(stats.detractor_pct, 0.0);
+        assert_eq!(stats.average, 0.0);
+    }
+
+    #[tokio::test]
+    async fn test_build_trend_empty_collection() {
+        let client = mongodb::Client::with_uri_str("mongodb://localhost:27017/test_nps")
+            .await
+            .unwrap();
+
+        let db = client.database("test_nps");
+        let collection: Collection<NpsEntry> = db.collection("nps_responses");
+
+        let trend = build_trend(&collection).await;
+
+        // Empty collection returns 6 months of zero data
+        assert_eq!(trend.len(), 6);
+        for item in &trend {
+            assert_eq!(item.overall, 0);
+            assert_eq!(item.total, 0);
+        }
+    }
 }

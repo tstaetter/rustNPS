@@ -47,7 +47,7 @@ pub struct NpsDashboardResponse {
     pub trend: Vec<TrendItem>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Default)]
 pub struct IndexQuery {
     pub period: Option<i32>,
 }
