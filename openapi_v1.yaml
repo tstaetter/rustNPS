@@ -57,6 +57,58 @@ components:
         dismissed:
           type: boolean
 
+    NpsDashboardResponse:
+      type: object
+      properties:
+        period_days:
+          type: integer
+        overall:
+          $ref: '#/components/schemas/NpsStats'
+        segments:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/NpsStats'
+        trend:
+          type: array
+          items:
+            $ref: '#/components/schemas/TrendItem'
+
+    NpsStats:
+      type: object
+      properties:
+        total:
+          type: integer
+        promoters:
+          type: integer
+        passives:
+          type: integer
+        detractors:
+          type: integer
+        nps:
+          type: integer
+        promoter_pct:
+          type: number
+        passive_pct:
+          type: number
+        detractor_pct:
+          type: number
+        average:
+          type: number
+
+    TrendItem:
+      type: object
+      properties:
+        label:
+          type: string
+        overall:
+          type: integer
+        by_segment:
+          type: object
+          additionalProperties:
+            type: integer
+        total:
+          type: integer
+
     Success:
       type: object
       properties:
@@ -71,8 +123,46 @@ components:
 
 paths:
   /nps:
+    get:
+      tags:
+        - NPS
+      summary: Get NPS dashboard with statistics
+      operationId: getNpsDashboard
+      parameters:
+        - name: period
+          in: query
+          description: 'Number of days to look back (default: 90)'
+          schema:
+            type: integer
+            default: 90
+      responses:
+        '200':
+          description: Dashboard with stats
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NpsDashboardResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Error'
     post:
-      tags: [ NPS ]
+      tags:
+        - NPS
       summary: Create a new NPS entry
       operationId: createNpsEntry
       requestBody:
@@ -80,7 +170,6 @@ paths:
         content:
           application/json:
             schema:
-              type: object
               $ref: '#/components/schemas/CreateNpsPayload'
       responses:
         '201':
@@ -130,15 +219,15 @@ paths:
                     $ref: '#/components/schemas/Error'
   /nps/dismiss:
     delete:
-      tags: [ NPS ]
-      summary: Dismiss a new entry
+      tags:
+        - NPS
+      summary: Dismiss an NPS entry
       operationId: dismissNpsEntry
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
               $ref: '#/components/schemas/DismissNpsPayload'
       responses:
         '200':
