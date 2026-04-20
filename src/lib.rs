@@ -3,7 +3,11 @@ pub mod error;
 mod handlers;
 mod payloads;
 pub mod routes;
-mod segment;
+pub mod segment;
+
+// Re-export useful types for testing
+pub use crate::handlers::create;
+pub use crate::payloads::NpsCreatePayload;
 
 use crate::error::NpsError;
 use axum::Router;
@@ -12,6 +16,7 @@ use std::sync::Arc;
 
 pub type AppResult<T> = Result<T, NpsError>;
 
+#[derive(Clone)]
 pub struct AppState {
     pub db: mongodb::Database,
 }
