@@ -21,7 +21,7 @@ async fn setup_test_server(db_name: &str) -> (TestServer, mongodb::Database) {
     let app_state = Arc::new(AppState { db: db.clone() });
 
     // Clear any existing data
-    let collection: mongodb::Collection<bson::Document> = db.collection("nps_responses");
+    let collection: mongodb::Collection<bson::Document> = db.collection("nps_entries");
     collection.delete_many(doc! {}).await.unwrap();
 
     let app = rust_nps::app(app_state);
@@ -32,7 +32,7 @@ async fn setup_test_server(db_name: &str) -> (TestServer, mongodb::Database) {
 #[tokio::test]
 async fn test_index_handler_returns_dashboard_with_default_period() {
     let (server, db) = setup_test_server("test_nps_default").await;
-    let collection: mongodb::Collection<bson::Document> = db.collection("nps_responses");
+    let collection: mongodb::Collection<bson::Document> = db.collection("nps_entries");
 
     // Clear any existing data
     collection.delete_many(doc! {}).await.unwrap();
@@ -75,7 +75,7 @@ async fn test_index_handler_returns_dashboard_with_default_period() {
 #[tokio::test]
 async fn test_index_handler_returns_dashboard_with_custom_period() {
     let (server, db) = setup_test_server("test_nps_custom").await;
-    let collection: mongodb::Collection<bson::Document> = db.collection("nps_responses");
+    let collection: mongodb::Collection<bson::Document> = db.collection("nps_entries");
 
     // Clear any existing data
     collection.delete_many(doc! {}).await.unwrap();
@@ -112,7 +112,7 @@ async fn test_index_handler_returns_dashboard_with_custom_period() {
 #[tokio::test]
 async fn test_index_handler_with_multiple_segments() {
     let (server, db) = setup_test_server("test_nps_segments").await;
-    let collection: mongodb::Collection<bson::Document> = db.collection("nps_responses");
+    let collection: mongodb::Collection<bson::Document> = db.collection("nps_entries");
 
     // Clear any existing data
     collection.delete_many(doc! {}).await.unwrap();
@@ -158,7 +158,7 @@ async fn test_index_handler_with_multiple_segments() {
 #[tokio::test]
 async fn test_index_handler_with_trend_data() {
     let (server, db) = setup_test_server("test_nps_trend").await;
-    let collection: mongodb::Collection<bson::Document> = db.collection("nps_responses");
+    let collection: mongodb::Collection<bson::Document> = db.collection("nps_entries");
 
     // Clear any existing data
     collection.delete_many(doc! {}).await.unwrap();
@@ -197,7 +197,7 @@ async fn test_index_handler_with_trend_data() {
 #[tokio::test]
 async fn test_index_handler_with_score_distribution() {
     let (server, db) = setup_test_server("test_nps_distribution").await;
-    let collection: mongodb::Collection<bson::Document> = db.collection("nps_responses");
+    let collection: mongodb::Collection<bson::Document> = db.collection("nps_entries");
 
     // Clear any existing data
     collection.delete_many(doc! {}).await.unwrap();
@@ -240,7 +240,7 @@ async fn test_index_handler_with_score_distribution() {
 #[tokio::test]
 async fn test_index_handler_with_empty_trend_data() {
     let (server, db) = setup_test_server("test_nps_empty").await;
-    let collection: mongodb::Collection<bson::Document> = db.collection("nps_responses");
+    let collection: mongodb::Collection<bson::Document> = db.collection("nps_entries");
 
     // Clear any existing data
     collection.delete_many(doc! {}).await.unwrap();

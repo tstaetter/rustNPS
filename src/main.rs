@@ -1,7 +1,9 @@
+use bson::doc;
 use mongodb::Client;
-use rust_nps::{app, AppResult, AppState};
+use mongodb::IndexModel;
+use rust_nps::{AppResult, AppState, NpsEntry, app};
 use std::sync::Arc;
-use tracing_subscriber::{prelude::*, EnvFilter};
+use tracing_subscriber::{EnvFilter, prelude::*};
 
 #[tokio::main]
 async fn main() -> AppResult<()> {
@@ -27,12 +29,28 @@ async fn main() -> AppResult<()> {
     let mongo_db = std::env::var("MONGODB_DB").unwrap_or_else(|_| "rust_nps".to_string());
     let client = Client::with_uri_str(&mongo_uri).await?;
     let db = client.database(&mongo_db);
+
+    // Create indexes
+    let collection = db.collection::<NpsEntry>("nps_entries");
+    collection
+        .create_index(IndexModel::builder().keys(doc! { "created_at": 1 }).build())
+        .await?;
+    collection
+        .create_index(IndexModel::builder().keys(doc! { "segment": 1 }).build())
+        .await?;
+    collection
+        .create_index(
+            IndexModel::builder()
+                .keys(doc! { "user": 1, "segment": 1 })
+                .build(),
+        )
+        .await?;
+
     let app_state = Arc::new(AppState { db });
     let app = app(app_state);
     let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", port)).await?;
 
     tracing::info!("Listening on {}", listener.local_addr()?);
-    println!("Listening on {}", listener.local_addr()?);
 
     axum::serve(listener, app).await?;
 

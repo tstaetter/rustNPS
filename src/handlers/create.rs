@@ -1,12 +1,12 @@
+use crate::AppState;
 use crate::db::NpsEntry;
 use crate::payloads::NpsCreatePayload;
-use crate::AppState;
+use axum::Json;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
-use axum::Json;
-use bson::doc;
 use mongodb::Collection;
+use serde_json::json;
 use std::sync::Arc;
 use validator::Validate;
 
@@ -24,23 +24,27 @@ pub async fn create(
     let entry = NpsEntry::from(payload);
     let collection: Collection<NpsEntry> = state.db.collection("nps_entries");
 
-    match collection.insert_one(entry.clone()).await {
+    match collection.insert_one(entry).await {
         Ok(result) => {
-            let mut created_entry = entry;
+            tracing::info!(
+                "Entry created with id: {:?}",
+                result.inserted_id.as_object_id()
+            );
 
-            created_entry.id = result.inserted_id.as_object_id();
-            tracing::info!("Entry created with id: {:?}", created_entry.id);
-
-            let response = doc! { "msg": "Created" };
-
-            (StatusCode::CREATED, Json(response)).into_response()
+            (
+                StatusCode::CREATED,
+                Json(json!({ "data": { "message": "Created" } })),
+            )
+                .into_response()
         }
         Err(e) => {
             tracing::error!("Error creating entry: {:?}", e);
 
-            let response = doc! { "msg": e.to_string() };
-
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(response)).into_response()
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(json!({ "error": e.to_string() })),
+            )
+                .into_response()
         }
     }
 }

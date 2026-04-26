@@ -1,4 +1,3 @@
-use crate::db::Model;
 use crate::segment::Segment;
 use bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
@@ -25,25 +24,8 @@ impl From<crate::payloads::NpsCreatePayload> for NpsEntry {
             score: entry.score,
             comment: entry.comment,
             dismissed: None,
-            created_at: Default::default(),
-            updated_at: Default::default(),
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
         }
     }
 }
-
-impl From<crate::payloads::NpsDismissPayload> for NpsEntry {
-    fn from(entry: crate::payloads::NpsDismissPayload) -> Self {
-        Self {
-            id: None,
-            user: entry.user,
-            segment: Segment::from(entry.segment),
-            score: Default::default(),
-            comment: Default::default(),
-            dismissed: Some(entry.dismissed),
-            created_at: Default::default(),
-            updated_at: Default::default(),
-        }
-    }
-}
-
-impl Model for NpsEntry {}

@@ -1,10 +1,13 @@
 use crate::db::NpsEntry;
 use crate::payloads::{NpsStats, TrendItem};
-use bson::{doc, DateTime};
-use chrono::{Datelike, Duration, Utc};
+use bson::{DateTime, doc};
+use chrono::{Datelike, Months, Utc};
 use futures::TryStreamExt;
 use mongodb::Collection;
 use std::collections::HashMap;
+
+type SegmentCounts = (u64, u64, u64);
+type MonthSegmentData = HashMap<String, SegmentCounts>;
 
 pub(crate) async fn build_stats(
     collection: &Collection<NpsEntry>,
@@ -36,13 +39,7 @@ pub(crate) async fn build_stats(
         .await
         .unwrap_or(0);
 
-    let nps = if total == 0 {
-        0
-    } else {
-        let p_pct = (promoters as f64 / total as f64) * 100.0;
-        let d_pct = (detractors as f64 / total as f64) * 100.0;
-        (p_pct - d_pct).round() as i32
-    };
+    let nps = calculate_nps(promoters, detractors, total);
 
     let average = if total == 0 {
         0.0
@@ -73,102 +70,98 @@ pub(crate) async fn build_stats(
 }
 
 pub(crate) async fn build_trend(collection: &Collection<NpsEntry>) -> Vec<TrendItem> {
-    let mut trend = Vec::new();
     let now = Utc::now();
 
-    for i in (0..6).rev() {
-        let i = i as i32;
-        // Actually we need to subtract i months
-        let mut year = now.year();
-        let mut month = now.month() as i32 - i;
-        while month <= 0 {
-            month += 12;
-            year -= 1;
-        }
-        let start_of_month = chrono::NaiveDate::from_ymd_opt(year, month as u32, 1)
+    // Calculate start of the month 5 months before current (6 months total)
+    let five_months_ago = now.checked_sub_months(Months::new(5)).unwrap();
+    let six_months_ago =
+        chrono::NaiveDate::from_ymd_opt(five_months_ago.year(), five_months_ago.month(), 1)
             .unwrap()
             .and_hms_opt(0, 0, 0)
             .unwrap()
             .and_local_timezone(Utc)
             .unwrap();
 
-        let next_month = if month == 12 {
-            chrono::NaiveDate::from_ymd_opt(year + 1, 1, 1).unwrap()
-        } else {
-            chrono::NaiveDate::from_ymd_opt(year, month as u32 + 1, 1).unwrap()
-        }
-        .and_hms_opt(0, 0, 0)
-        .unwrap()
-        .and_local_timezone(Utc)
-        .unwrap();
+    let pipeline = vec![
+        doc! { "$match": { "created_at": { "$gte": DateTime::from_chrono(six_months_ago) } } },
+        doc! { "$addFields": {
+            "year": { "$year": "$created_at" },
+            "month": { "$month": "$created_at" }
+        } },
+        doc! { "$group": {
+            "_id": { "year": "$year", "month": "$month", "segment": "$segment" },
+            "total": { "$sum": 1 },
+            "promoters": { "$sum": { "$cond": [{ "$gte": ["$score", 9] }, 1, 0] } },
+            "detractors": { "$sum": { "$cond": [{ "$lte": ["$score", 6] }, 1, 0] } },
+        } },
+    ];
 
-        let end_of_month = next_month - Duration::nanoseconds(1);
+    // Collect aggregation results into a map keyed by (year, month) -> segment -> (total, promoters, detractors)
+    let mut month_data: HashMap<(i32, i32), MonthSegmentData> = HashMap::new();
 
-        let filter = doc! {
-            "created_at": {
-                "$gte": DateTime::from_chrono(start_of_month),
-                "$lte": DateTime::from_chrono(end_of_month)
+    if let Ok(mut cursor) = collection.aggregate(pipeline).await {
+        while let Ok(Some(result)) = cursor.try_next().await {
+            if let Ok(id) = result.get_document("_id") {
+                let agg_year = id.get_i32("year").unwrap_or(0);
+                let agg_month = id.get_i32("month").unwrap_or(0);
+                let segment = id.get_str("segment").unwrap_or("").to_string();
+                let total = result.get_i64("total").unwrap_or(0) as u64;
+                let promoters = result.get_i64("promoters").unwrap_or(0) as u64;
+                let detractors = result.get_i64("detractors").unwrap_or(0) as u64;
+
+                month_data
+                    .entry((agg_year, agg_month))
+                    .or_default()
+                    .insert(segment, (total, promoters, detractors));
             }
-        };
-
-        let total = collection
-            .count_documents(filter.clone())
-            .await
-            .unwrap_or(0);
-        let overall_nps = calculate_nps(collection, filter.clone()).await;
-
-        let segments_names: Vec<String> = collection
-            .distinct("segment", filter.clone())
-            .await
-            .unwrap_or_default()
-            .into_iter()
-            .filter_map(|b| b.as_str().map(|s| s.to_string()))
-            .collect();
-
-        let mut by_segment = HashMap::new();
-        for s in segments_names {
-            let mut s_filter = filter.clone();
-            s_filter.insert("segment", &s);
-            by_segment.insert(s, calculate_nps(collection, s_filter).await);
         }
+    }
+
+    // Build TrendItems for each of the last 6 months
+    let mut trend = Vec::new();
+    for i in (0..6).rev() {
+        let date = now.checked_sub_months(Months::new(i)).unwrap();
+        let label = date.format("%b %Y").to_string();
+        let y = date.year();
+        let m = date.month() as i32;
+
+        let segments = month_data.get(&(y, m)).cloned().unwrap_or_default();
+
+        let mut overall_total: u64 = 0;
+        let mut overall_promoters: u64 = 0;
+        let mut overall_detractors: u64 = 0;
+        let mut by_segment = HashMap::new();
+
+        for (segment, (total, promoters, detractors)) in &segments {
+            overall_total += total;
+            overall_promoters += promoters;
+            overall_detractors += detractors;
+
+            let nps = calculate_nps(*promoters, *detractors, *total);
+            by_segment.insert(segment.clone(), nps);
+        }
+
+        let overall = calculate_nps(overall_promoters, overall_detractors, overall_total);
 
         trend.push(TrendItem {
-            label: start_of_month.format("%b %Y").to_string(),
-            overall: overall_nps,
+            label,
+            overall,
             by_segment,
-            total,
+            total: overall_total,
         });
     }
 
     trend
 }
 
-async fn calculate_nps(collection: &Collection<NpsEntry>, filter: bson::Document) -> i32 {
-    let total = collection
-        .count_documents(filter.clone())
-        .await
-        .unwrap_or(0);
+fn calculate_nps(promoters: u64, detractors: u64, total: u64) -> i32 {
     if total == 0 {
-        return 0;
+        0
+    } else {
+        let p_pct = (promoters as f64 / total as f64) * 100.0;
+        let d_pct = (detractors as f64 / total as f64) * 100.0;
+        (p_pct - d_pct).round() as i32
     }
-
-    let mut promoter_filter = filter.clone();
-    promoter_filter.insert("score", doc! { "$gte": 9 });
-    let promoters = collection
-        .count_documents(promoter_filter)
-        .await
-        .unwrap_or(0);
-
-    let mut detractor_filter = filter.clone();
-    detractor_filter.insert("score", doc! { "$lte": 6 });
-    let detractors = collection
-        .count_documents(detractor_filter)
-        .await
-        .unwrap_or(0);
-
-    let p_pct = (promoters as f64 / total as f64) * 100.0;
-    let d_pct = (detractors as f64 / total as f64) * 100.0;
-    (p_pct - d_pct).round() as i32
 }
 
 fn percentage(count: u64, total: u64) -> f64 {

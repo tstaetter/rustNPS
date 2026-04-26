@@ -5,14 +5,13 @@ edition = "2024"
 
 [dependencies]
 axum = { version = "0.8", features = ["tokio", "tracing", "http2", "json"] }
-axum-extra = { version = "0.12", features = ["cookie"] }
 dotenvy = "0.15"
 serde = { version = "1", features = ["derive"] }
-serde-helpers = "0.1"
 serde_with = { version = "3", features = ["json", "hex", "macros"] }
 serde_json = "1"
 bson = { version = "3", features = ["chrono-0_4", "serde", "serde_with-3"] }
 chrono = { version = "0.4", features = ["serde"] }
+# TODO: Used for JWT auth — not yet wired up, but needed when auth is implemented
 jsonwebtoken = { version = "10", features = ["rust_crypto"] }
 mongodb = { version = "3", features = ["bson-3"] }
 tokio = { version = "1", features = ["full"] }
@@ -20,14 +19,10 @@ tower = "0.5"
 tower-http = { version = "0.6", features = ["cors", "trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-reqwest = { version = "0.13", features = ["json"] }
-uuid = { version = "1", features = ["v4"] }
 thiserror = "2"
 validator = { version = "0.20", features = ["derive"] }
 futures = "0.3"
-handlers = "0.10.0"
 
 [dev-dependencies]
 anyhow = "1"
 axum-test = "20"
-serial_test = "0.2"

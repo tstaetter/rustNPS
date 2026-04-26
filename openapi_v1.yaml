@@ -36,9 +36,15 @@ components:
           format: ObjectId
         segment:
           type: string
+          enum:
+            - User
+            - Studio
+            - Professional
         score:
           type: integer
           format: int32
+          minimum: 0
+          maximum: 10
         comment:
           type: string
 
@@ -54,6 +60,10 @@ components:
           format: ObjectId
         segment:
           type: string
+          enum:
+            - User
+            - Studio
+            - Professional
         dismissed:
           type: boolean
 
@@ -118,7 +128,7 @@ components:
     Error:
       type: object
       properties:
-        message:
+        error:
           type: string
 
 paths:
@@ -127,6 +137,9 @@ paths:
       tags:
         - NPS
       summary: Get NPS dashboard with statistics
+      description: >-
+        Returns NPS dashboard with overall and per-segment statistics and trend data.
+        Entries where dismissed is true are excluded from statistics.
       operationId: getNpsDashboard
       parameters:
         - name: period
@@ -135,6 +148,8 @@ paths:
           schema:
             type: integer
             default: 90
+            minimum: 1
+            maximum: 730
       responses:
         '200':
           description: Dashboard with stats
@@ -147,19 +162,13 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  data:
-                    $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/Error'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  data:
-                    $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/Error'
     post:
       tags:
         - NPS
@@ -186,42 +195,33 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  data:
-                    $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/Error'
         '403':
           description: Forbidden
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  data:
-                    $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/Error'
         '422':
           description: Unprocessable entity
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  data:
-                    $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/Error'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  data:
-                    $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/Error'
   /nps/dismiss:
     delete:
       tags:
         - NPS
-      summary: Dismiss an NPS entry
+      summary: Update an existing NPS entry's dismissed status
+      description: >-
+        Sets the dismissed flag on an existing NPS entry identified by user and segment.
+        Does not create a new entry; returns 404 if no matching entry exists.
       operationId: dismissNpsEntry
       requestBody:
         required: true
@@ -244,34 +244,28 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  data:
-                    $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/Error'
         '403':
           description: Forbidden
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  data:
-                    $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not found - no matching entry for the given user and segment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '422':
           description: Unprocessable entity
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  data:
-                    $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/Error'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  data:
-                    $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/Error'

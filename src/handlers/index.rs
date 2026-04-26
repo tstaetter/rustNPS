@@ -1,27 +1,33 @@
 use super::stats::{build_stats, build_trend};
+use crate::AppState;
 use crate::db::NpsEntry;
 use crate::payloads::{IndexQuery, NpsDashboardResponse};
-use crate::AppState;
-use axum::extract::{Query, State};
-use axum::response::IntoResponse;
 use axum::Json;
+use axum::extract::{Query, State};
+use axum::http::StatusCode;
+use axum::response::IntoResponse;
 use chrono::{Duration, Utc};
 use mongodb::Collection;
 use std::collections::HashMap;
 use std::sync::Arc;
+use validator::Validate;
 
 pub async fn index(
     State(state): State<Arc<AppState>>,
     Query(query): Query<IndexQuery>,
 ) -> impl IntoResponse {
+    if let Err(e) = query.validate() {
+        return (StatusCode::UNPROCESSABLE_ENTITY, Json(e)).into_response();
+    }
     let period_days = query.period.unwrap_or(90);
     let from = Utc::now() - Duration::days(period_days as i64);
-
-    let collection: Collection<NpsEntry> = state.db.collection("nps_responses");
-
+    let collection: Collection<NpsEntry> = state.db.collection("nps_entries");
     // Get segments
     let segments_names: Vec<String> = collection
-        .distinct("segment", bson::doc! { "created_at": { "$gte": from } })
+        .distinct(
+            "segment",
+            bson::doc! { "created_at": { "$gte": from }, "dismissed": { "$ne": true } },
+        )
         .await
         .unwrap_or_default()
         .into_iter()
@@ -29,7 +35,10 @@ pub async fn index(
         .collect();
 
     // Overall stats
-    let base_filter = bson::doc! { "created_at": { "$gte": from } };
+    let base_filter = bson::doc! {
+        "created_at": { "$gte": from },
+        "dismissed": { "$ne": true }
+    };
     let overall = build_stats(&collection, base_filter.clone()).await;
 
     // Segment stats
@@ -49,6 +58,7 @@ pub async fn index(
         segments,
         trend,
     })
+    .into_response()
 }
 
 #[cfg(test)]
@@ -62,7 +72,7 @@ mod tests {
         match client {
             Ok(client) => {
                 let db = client.database("test_nps");
-                let _collection: mongodb::Collection<NpsEntry> = db.collection("nps_responses");
+                let _collection: mongodb::Collection<NpsEntry> = db.collection("nps_entries");
 
                 let app_state = Arc::new(AppState { db: db.clone() });
                 let result = index(State(app_state), Query(IndexQuery::default())).await;
@@ -88,7 +98,7 @@ mod tests {
         match client {
             Ok(client) => {
                 let db = client.database("test_nps");
-                let _collection: mongodb::Collection<NpsEntry> = db.collection("nps_responses");
+                let _collection: mongodb::Collection<NpsEntry> = db.collection("nps_entries");
 
                 let app_state = Arc::new(AppState { db: db.clone() });
                 let result = index(State(app_state), Query(IndexQuery { period: Some(30) })).await;
@@ -117,7 +127,7 @@ mod tests {
         match client {
             Ok(client) => {
                 let db = client.database("test_nps");
-                let collection: Collection<NpsEntry> = db.collection("nps_responses");
+                let collection: Collection<NpsEntry> = db.collection("nps_entries");
 
                 // Clear any existing data to ensure clean test
                 collection.delete_many(bson::doc! {}).await.unwrap();
@@ -143,7 +153,7 @@ mod tests {
         match client {
             Ok(client) => {
                 let db = client.database("test_nps");
-                let collection: Collection<NpsEntry> = db.collection("nps_responses");
+                let collection: Collection<NpsEntry> = db.collection("nps_entries");
 
                 // Clear any existing data to ensure clean test
                 collection.delete_many(bson::doc! {}).await.unwrap();

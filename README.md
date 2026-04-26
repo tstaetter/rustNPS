@@ -68,10 +68,17 @@ npm run lint
 │   ├── main.rs         # Application entry point and server setup
 │   ├── lib.rs          # Library root, app factory, and shared types
 │   ├── routes.rs       # Axum router definitions
-│   ├── handlers.rs     # Request handlers (business logic)
 │   ├── payloads.rs     # Data transfer objects (DTOs) and BSON models
 │   ├── error.rs        # Custom error types and handling
-│   └── segment.rs      # Segmentation logic
+│   ├── segment.rs      # Segmentation logic
+│   ├── handlers/
+│   │   ├── mod.rs      # Handlers module root
+│   │   ├── create.rs   # Create NPS entry handler
+│   │   ├── dismiss.rs   # Dismiss NPS entry handler
+│   │   ├── index.rs    # Dashboard/stats index handler
+│   │   └── stats.rs    # Stats computation handler
+│   └── db/
+│       └── mod.rs      # MongoDB models (NpsEntry)
 └── target/             # Compiled artifacts
 ```
 

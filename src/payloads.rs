@@ -5,20 +5,22 @@ use validator::{Validate, ValidationError};
 #[derive(Debug, Serialize, Deserialize, Clone, Default, Validate)]
 pub struct NpsCreatePayload {
     pub user: ObjectId,
+    #[validate(custom(function = "validate_segment"))]
     pub segment: String,
+    #[validate(range(min = 0, max = 10))]
     pub score: i32,
     pub comment: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default, Validate)]
 pub struct NpsDismissPayload {
-    #[validate(custom(function = "validate_object_id"))]
     pub user: ObjectId,
+    #[validate(custom(function = "validate_segment"))]
     pub segment: String,
     pub dismissed: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize)]
 pub struct NpsStats {
     pub total: u64,
     pub promoters: u64,
@@ -31,7 +33,7 @@ pub struct NpsStats {
     pub average: f64,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize)]
 pub struct TrendItem {
     pub label: String,
     pub overall: i32,
@@ -39,7 +41,7 @@ pub struct TrendItem {
     pub total: u64,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize)]
 pub struct NpsDashboardResponse {
     pub period_days: i32,
     pub overall: NpsStats,
@@ -47,21 +49,20 @@ pub struct NpsDashboardResponse {
     pub trend: Vec<TrendItem>,
 }
 
-#[derive(Debug, Deserialize, Default)]
+#[derive(Debug, Deserialize, Default, Validate)]
 pub struct IndexQuery {
+    #[validate(range(min = 1, max = 730))]
     pub period: Option<i32>,
 }
 
-impl NpsCreatePayload {
-    pub fn new() -> Self {
-        NpsCreatePayload::default()
-    }
-}
-
-fn validate_object_id(id: &ObjectId) -> Result<(), ValidationError> {
-    if ObjectId::parse_str(id.to_string()).is_err() {
-        Err(ValidationError::new("invalid ObjectId format"))
-    } else {
-        Ok(())
+fn validate_segment(segment: &str) -> Result<(), ValidationError> {
+    match segment {
+        "User" | "Studio" | "Professional" => Ok(()),
+        _ => Err(
+            ValidationError::new("invalid_segment").with_message(std::borrow::Cow::Owned(format!(
+                "Invalid segment: '{}'. Must be one of: User, Studio, Professional",
+                segment
+            ))),
+        ),
     }
 }
